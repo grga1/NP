@@ -11,6 +11,7 @@
 // double toDouble() - враќа вредност на дропката како реален број
 // toString():String - ја печати дропката во следниот формат [numerator] / [denominator], скратена (нормализирана) и секој со две децимални места.
 
+
 import java.util.Scanner;
 
 public class GenericFractionTest {
