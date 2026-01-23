@@ -57,34 +57,25 @@
 // За сите класи да се напишат соодветни equals и hashCode методи.
 
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 
-
- class Account{
-
-    private Random RNG = new Random();
-    private static Set<Long> used_ids = new HashSet<>();
-
-    private String name;
-    private long id;
-    private double balance;
+class Account{
+private final String name;
+private final long id;
+private double balance;
+static private final Random random = new Random();
 
     public Account(String name, double balance) {
         this.name = name;
-        this.id = generateId();
+        this.id = random.nextLong();
         this.balance = balance;
     }
 
-    public long generateId(){
-        long number;
-        do{
-            number=Math.abs(RNG.nextLong());
-        }while (number==0||used_ids.contains(number));
-    used_ids.add(number);
-            return number;
+    public double getBalance() {
+        return balance;
     }
+
     public String getName() {
         return name;
     }
@@ -93,201 +84,155 @@ import java.util.stream.Collectors;
         return id;
     }
 
-    public double getBalance() {
-        return balance;
-    }
-
     public void setBalance(double balance) {
         this.balance = balance;
     }
 
-     @Override
-     public String toString() {
-         return "Name: " + name + "\n" +
-                 "Balance: "+String.format("%.2f$",balance)+"\n";
-     }
+    @Override
+    public String toString() {
+        return String.format("Name: %s\nBalance: %.2f$\n",name,balance);
+    }
+}
 
-     @Override
-     public boolean equals(Object o) {
-         if (this == o) return true;
-         if (o == null || getClass() != o.getClass()) return false;
-         Account account = (Account) o;
-         return id == account.id && Double.compare(balance, account.balance) == 0 && Objects.equals(RNG, account.RNG) && Objects.equals(name, account.name);
-     }
+abstract class Transaction{
+    private final long fromId;
+    private final long toId;
+    private final String description;
+    private final double amount;
 
-     @Override
-     public int hashCode() {
-         return Objects.hash(RNG, name, id, balance);
-     }
- }
-abstract class  Transaction{
-    private long fromId;
-    private  long toId;
-    private  String description;
-    private  double amount;
-
-    public Transaction(long fromId, long toId, String description, double amount) {
+    public Transaction(long fromId, long toId, double amount,String description) {
         this.fromId = fromId;
         this.toId = toId;
         this.description = description;
         this.amount = amount;
     }
-    public long getFromId() { return fromId; }
-    public long getToId() { return toId; }
-    public String getDescription() { return description; }
-    public double getAmount() { return amount; }
 
-    public abstract double provision();
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Transaction that = (Transaction) o;
-        return fromId == that.fromId && toId == that.toId && Double.compare(amount, that.amount) == 0 && Objects.equals(description, that.description);
+    public String getDescription() {
+        return description;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(fromId, toId, description, amount);
+    public double getAmount() {
+        return amount;
+    }
+
+    public long getFromId() {
+        return fromId;
+    }
+
+    public long getToId() {
+        return toId;
     }
 }
 
 class FlatAmountProvisionTransaction extends Transaction{
-    private double flatProvision;
-
-    public FlatAmountProvisionTransaction(long fromId, long toId, double amount, double flatProvision) {
-        super(fromId, toId, "FlatAmount", amount);
+     private final double flatProvision;
+    FlatAmountProvisionTransaction(long fromId, long toId,double amount, double flatProvision){
+        super(fromId, toId, amount,"FlatAmount");
         this.flatProvision = flatProvision;
     }
 
-    public double getFlatAmount() {
+    public double getFlatProvision() {
         return flatProvision;
     }
-
     @Override
-    public double provision() {
-        return flatProvision;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        FlatAmountProvisionTransaction that = (FlatAmountProvisionTransaction) o;
-        return Double.compare(flatProvision, that.flatProvision) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), flatProvision);
+    public boolean equals(Object obj) {
+        return super.equals(obj);
     }
 }
 
-class FlatPercentProvisionTransaction extends Transaction{
-  private int percent;
-
-    public FlatPercentProvisionTransaction(long fromId, long toId,  double amount, int percent) {
-        super(fromId, toId,"FlatPercent", amount);
-        this.percent = percent;
+class  FlatPercentProvisionTransaction extends Transaction{
+    private final int flatPercentage;
+    FlatPercentProvisionTransaction (long fromId, long toId, double amount, int centsPerDolar){
+        super(fromId, toId, amount, "FlatPercent");
+        this.flatPercentage = centsPerDolar;
     }
+  public int getFlatPercentage() {
+        return flatPercentage;
+  }
 
-    public int getPercent() {
-        return percent;
+  @Override
+   public boolean equals(Object obj) {
+        return super.equals(obj);
     }
-
-    @Override
-    public double provision() {
-        return getAmount()*(percent/100.0);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        FlatPercentProvisionTransaction that = (FlatPercentProvisionTransaction) o;
-        return percent == that.percent;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), percent);
-    }
-    
 }
-
 class Bank{
     private  String name;
     private  Account[] accounts;
-    private double totalTransfers;
     private double totalProvision;
+    private  double totalTransfers;
 
     public Bank(String name, Account[] accounts) {
         this.name = name;
         this.accounts = Arrays.copyOf(accounts,accounts.length);
-    }
+        this.totalProvision = 0;
+        this.totalTransfers = 0;
 
-    public Account[] getAccounts() {
-        return accounts;
     }
+    boolean makeTransaction(Transaction t){
+        Account from = null;
+        Account to = null;
+        for (Account account : accounts) {
+            if (account.getId()==t.getFromId()){
+                from = account;
+            }
+            if (account.getId()==t.getToId()){
+                to = account;
+            }
+        }
+        if (from == null || to == null){
+            return false;
+        }
+        double provision=0;
+        if(t instanceof FlatAmountProvisionTransaction){
+            provision= ((FlatAmountProvisionTransaction) t).getFlatProvision();
+        }else if(t instanceof FlatPercentProvisionTransaction){
+            provision=t.getAmount()*((FlatPercentProvisionTransaction) t).getFlatPercentage()/100;
+        }
 
-    public double totalTransfers() {
-        return totalTransfers;
+        double amount = t.getAmount();
+        if (from.getBalance()<amount+provision)
+            return false;
+
+        from.setBalance(from.getBalance()-amount-provision);
+        to.setBalance(to.getBalance()+amount);
+        totalProvision+=provision;
+        totalTransfers+=amount;
+        return true;
     }
 
     public double totalProvision() {
         return totalProvision;
     }
 
-    private Account findAccount(long id){
-        for (Account a: accounts){
-            if(a.getId()==id) return a;
-        }
-        return null;
+    public double totalTransfers() {
+        return totalTransfers;
     }
 
-    public boolean makeTransaction(Transaction t){
-        Account from = findAccount(t.getFromId());
-        Account to   = findAccount(t.getToId());
-        if (from == null || to == null) return false;           // сметките мора да постојат
-
-        double total = t.getAmount() + t.provision();           // праќач плаќа сума + провизија
-        if (from.getBalance() < total) return false;            // доволно средства?
-
-        from.setBalance(from.getBalance() - total);             // одземање кај праќач
-        to.setBalance(to.getBalance() + t.getAmount());         // додавање кај примач
-
-        totalTransfers += t.getAmount();                        // статистики
-        totalProvision += t.provision();
-        return true;
+    public Account[] getAccounts() {
+        return accounts;
     }
+
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Name: "+name+"\n\n");
-        for (Account a: accounts){
+        sb.append("Name: ").append(name).append("\n\n");
+        for (Account a : accounts) {
             sb.append(a.toString());
         }
-
         return sb.toString();
-
     }
-
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Bank bank = (Bank) o;
-        return Double.compare(totalTransfers, bank.totalTransfers) == 0 && Double.compare(totalProvision, bank.totalProvision) == 0 && Objects.equals(name, bank.name) && Objects.deepEquals(accounts, bank.accounts);
+        return Double.compare(totalProvision, bank.totalProvision) == 0 && Double.compare(totalTransfers, bank.totalTransfers) == 0 && Objects.equals(name, bank.name) && Objects.deepEquals(accounts, bank.accounts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, Arrays.hashCode(accounts), totalTransfers, totalProvision);
+        return Objects.hash(name, Arrays.hashCode(accounts), totalProvision, totalTransfers);
     }
 }
 public class BankTester {
@@ -449,5 +394,3 @@ public class BankTester {
 
 
 }
-
-
